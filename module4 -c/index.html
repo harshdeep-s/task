@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Weather Service</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #f4f4f4;
+        }
+        h1 {
+            font-size: 24px;
+            margin-bottom: 20px;
+            text-align: center;
+            color: #333;
+        }
+        .buttons-container {
+            display: flex;
+            gap: 20px;
+        }
+        .circular-button {
+            width: 150px;
+            height: 150px;
+            border-radius: 50%;
+            background-color: #007bff;
+            color: white;
+            font-size: 20px;
+            font-weight: bold;
+            border: none;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: background-color 0.3s ease;
+            text-align: center;
+            line-height: 1.2;
+        }
+        .circular-button:hover {
+            background-color: #0056b3;
+        }
+        .form-container {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            width: 300px;
+            display: none; /* Initially hidden */
+            flex-direction: column;
+            justify-content: center;
+        }
+        .form-container h1 {
+            text-align: center;
+        }
+        .form-container label {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 10px;
+            margin-bottom: 10px;
+        }
+        .form-container input {
+            width: 60%;
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        .form-container button {
+            width: 100%;
+            padding: 10px;
+            background-color: #007bff;
+            border: none;
+            border-radius: 4px;
+            color: #fff;
+            cursor: pointer;
+            margin-top: 20px;
+        }
+        .form-container button:hover {
+            background-color: #0056b3;
+        }
+        .result-container {
+            margin-top: 20px;
+            font-size: 18px;
+            font-weight: bold;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Local Weather Service</h1>
+
+    <!-- Circular Buttons -->
+    <div class="buttons-container" id="buttonsContainer">
+        <button class="circular-button" id="updateWeatherBtn">Update Temp & Humidity</button>
+        <button class="circular-button" id="fetchWeatherBtn">Fetch Temp by Location</button>
+    </div>
+
+    <!-- Form for Submitting Temperature and Humidity -->
+    <div class="form-container" id="updateWeatherForm">
+        <h1>Submit Weather Data</h1>
+        <form id="weatherForm">
+            <label for="updateLocation">
+                Location:
+                <input type="text" id="updateLocation" name="updateLocation" required>
+            </label>
+
+            <label for="updateTemperature">
+                Temperature (°C):
+                <input type="number" id="updateTemperature" name="updateTemperature" required>
+            </label>
+
+            <label for="updateHumidity">
+                Humidity (%):
+                <input type="number" id="updateHumidity" name="updateHumidity" required>
+            </label>
+
+            <button type="submit">Submit</button>
+        </form>
+    </div>
+
+    <!-- Form for Fetching Temperature by Location -->
+    <div class="form-container" id="fetchWeatherForm">
+        <h1>Get Temperature by Location</h1>
+        <form id="locationForm">
+            <label for="fetchLocation">
+                Location:
+                <input type="text" id="fetchLocation" name="fetchLocation" required>
+            </label>
+
+            <button type="submit">Get Weather</button>
+        </form>
+        <div class="result-container" id="result"></div>
+    </div>
+
+    <script>
+        // Show and hide the forms based on which button is clicked
+        const buttonsContainer = document.getElementById('buttonsContainer');
+        const updateWeatherForm = document.getElementById('updateWeatherForm');
+        const fetchWeatherForm = document.getElementById('fetchWeatherForm');
+
+        document.getElementById('updateWeatherBtn').addEventListener('click', () => {
+            buttonsContainer.style.display = 'none';
+            updateWeatherForm.style.display = 'flex';  // Show the update form
+        });
+
+        document.getElementById('fetchWeatherBtn').addEventListener('click', () => {
+            buttonsContainer.style.display = 'none';
+            fetchWeatherForm.style.display = 'flex';  // Show the fetch form
+        });
+
+        // Handling the weather data submission
+        const weatherForm = document.getElementById('weatherForm');
+        weatherForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const data = {
+                location: document.getElementById('updateLocation').value, // Capture location
+                temperature: document.getElementById('updateTemperature').value,
+                humidity: document.getElementById('updateHumidity').value
+            };
+
+            // Send POST request to the weather API
+            const response = await fetch('/api/weather', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+
+            if (response.ok) {
+                alert('Weather data submitted successfully!');
+                weatherForm.reset();  // Clear the form fields after submission
+            } else {
+                alert('Failed to submit weather data.');
+            }
+        });
+
+        // Handling the location-based weather fetch
+        const locationForm = document.getElementById('locationForm');
+        locationForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const location = document.getElementById('fetchLocation').value;
+
+            // Send GET request to the weather API to fetch data by location
+            const response = await fetch(`/api/weather/location/${location}`);
+            const result = document.getElementById('result');
+
+            if (response.ok) {
+                const data = await response.json();
+                console.log(data);  // Corrected to use lowercase 'console'
+                if (data && data.temperature !== undefined && data.humidity !== undefined) {
+                    const temp = data.temperature; // Accessing the correct temperature value
+                    const humidity = data.humidity; // Accessing the humidity value
+                    result.textContent = `The current temperature in ${location} is ${temp}°C with a humidity of ${humidity}%.`;
+                } else {
+                    result.textContent = `No weather data available for ${location}.`;
+                }
+            } else {
+                const errorData = await response.json();
+                result.textContent = errorData.error || 'Failed to fetch weather data.';
+            }
+        });
+    </script>
+
+</body>
+</html>
