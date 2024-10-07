@@ -99,8 +99,11 @@
 
     <!-- Circular Buttons -->
     <div class="buttons-container" id="buttonsContainer">
-        <button class="circular-button" id="updateWeatherBtn">Update Temp & Humidity</button>
-        <button class="circular-button" id="fetchWeatherBtn">Fetch Temp by Location</button>
+        <button class="circular-button" id="updateWeatherBtn">Add location</button>
+        <button class="circular-button" id="fetchWeatherBtn">Fetch weather by Location</button>
+        <button class="circular-button" id="updateWeatherByLocationBtn">Update Weather by Location</button>
+        <button class="circular-button" id="deleteWeatherBtn">Delete Weather Data</button>
+   
     </div>
 
     <!-- Form for Submitting Temperature and Humidity -->
@@ -140,11 +143,50 @@
         <div class="result-container" id="result"></div>
     </div>
 
+    <!-- Form for Deleting Weather Data -->
+    <div class="form-container" id="deleteWeatherForm">
+        <h1>Delete Weather Data</h1>
+        <form id="deleteForm">
+            <label for="deleteLocation">
+                Location:
+                <input type="text" id="deleteLocation" name="deleteLocation" required>
+            </label>
+            <button type="submit">Delete Data</button>
+        </form>
+        <div class="result-container" id="deleteResult"></div>
+    </div>
+
+    <!-- Form for Updating Weather Data by Location -->
+    <div class="form-container" id="updateWeatherByLocationForm">
+        <h1>Update Weather Data</h1>
+        <form id="updateLocationForm">
+            <label for="updateLocationByLocation">
+                Location:
+                <input type="text" id="updateLocationByLocation" name="updateLocationByLocation" required>
+            </label>
+
+            <label for="updateTemperatureByLocation">
+                Temperature (°C):
+                <input type="number" id="updateTemperatureByLocation" name="updateTemperatureByLocation" required>
+            </label>
+
+            <label for="updateHumidityByLocation">
+                Humidity (%):
+                <input type="number" id="updateHumidityByLocation" name="updateHumidityByLocation" required>
+            </label>
+
+            <button type="submit">Update</button>
+        </form>
+        <div class="result-container" id="updateLocationResult"></div>
+    </div>
+
     <script>
         // Show and hide the forms based on which button is clicked
         const buttonsContainer = document.getElementById('buttonsContainer');
         const updateWeatherForm = document.getElementById('updateWeatherForm');
         const fetchWeatherForm = document.getElementById('fetchWeatherForm');
+        const deleteWeatherForm = document.getElementById('deleteWeatherForm');
+        const updateWeatherByLocationForm = document.getElementById('updateWeatherByLocationForm');
 
         document.getElementById('updateWeatherBtn').addEventListener('click', () => {
             buttonsContainer.style.display = 'none';
@@ -156,17 +198,26 @@
             fetchWeatherForm.style.display = 'flex';  // Show the fetch form
         });
 
+        document.getElementById('deleteWeatherBtn').addEventListener('click', () => {
+            buttonsContainer.style.display = 'none';
+            deleteWeatherForm.style.display = 'flex';  // Show the delete form
+        });
+
+        document.getElementById('updateWeatherByLocationBtn').addEventListener('click', () => {
+            buttonsContainer.style.display = 'none';
+            updateWeatherByLocationForm.style.display = 'flex';  // Show the update by location form
+        });
+
         // Handling the weather data submission
         const weatherForm = document.getElementById('weatherForm');
         weatherForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             const data = {
-                location: document.getElementById('updateLocation').value, // Capture location
+                location: document.getElementById('updateLocation').value,
                 temperature: document.getElementById('updateTemperature').value,
                 humidity: document.getElementById('updateHumidity').value
             };
 
-            // Send POST request to the weather API
             const response = await fetch('/api/weather', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -187,23 +238,66 @@
             e.preventDefault();
             const location = document.getElementById('fetchLocation').value;
 
-            // Send GET request to the weather API to fetch data by location
             const response = await fetch(`/api/weather/location/${location}`);
             const result = document.getElementById('result');
 
             if (response.ok) {
                 const data = await response.json();
-                console.log(data);  // Corrected to use lowercase 'console'
                 if (data && data.temperature !== undefined && data.humidity !== undefined) {
-                    const temp = data.temperature; // Accessing the correct temperature value
-                    const humidity = data.humidity; // Accessing the humidity value
+                    const temp = data.temperature;
+                    const humidity = data.humidity;
                     result.textContent = `The current temperature in ${location} is ${temp}°C with a humidity of ${humidity}%.`;
                 } else {
-                    result.textContent = `No weather data available for ${location}.`;
+                    result.textContent = `No weather data found for ${location}.`;
                 }
             } else {
+                result.textContent = 'Failed to fetch weather data.';
+            }
+        });
+
+        // Handling the deletion of weather data
+        const deleteForm = document.getElementById('deleteForm');
+        deleteForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const location = document.getElementById('deleteLocation').value;
+
+            const response = await fetch(`/api/weather/location/${location}`, {
+                method: 'DELETE'
+            });
+
+            const deleteResult = document.getElementById('deleteResult');
+            if (response.ok) {
+                const data = await response.json();
+                deleteResult.textContent = data.message;
+            } else {
                 const errorData = await response.json();
-                result.textContent = errorData.error || 'Failed to fetch weather data.';
+                deleteResult.textContent = errorData.error || 'Failed to delete weather data.';
+            }
+        });
+
+        // Handling the update of weather data by location
+        const updateLocationForm = document.getElementById('updateLocationForm');
+        updateLocationForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const data = {
+                location: document.getElementById('updateLocationByLocation').value,
+                temperature: document.getElementById('updateTemperatureByLocation').value,
+                humidity: document.getElementById('updateHumidityByLocation').value
+            };
+
+            const response = await fetch(`/api/weather/location/${data.location}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+
+            const updateLocationResult = document.getElementById('updateLocationResult');
+            if (response.ok) {
+                const responseData = await response.json();
+                updateLocationResult.textContent = responseData.message || 'Weather data updated successfully!';
+            } else {
+                const errorData = await response.json();
+                updateLocationResult.textContent = errorData.error || 'Failed to update weather data.';
             }
         });
     </script>
