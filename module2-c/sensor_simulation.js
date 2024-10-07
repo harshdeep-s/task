@@ -43,7 +43,6 @@ const parser = port.pipe(new ReadlineParser({ delimiter: '\r\n' }));
 
 parser.on('data', (data) => {
 
-
   // Parse sensor values
   const [heatStr, smokeStr, fireStr] = data.split('\t');
   const heat = parseFloat(heatStr.split(': ')[1]);
@@ -54,33 +53,42 @@ parser.on('data', (data) => {
   console.log(`Smoke: ${smoke} ppm`);
   console.log(`Fire: ${fire}`);
 
-  // Determine alert messages
+  // Determine alert messages using data fusion
   let homeownersMessage = '';
   let fireServiceMessage = '';
   let newsMessage = '';
   let socialMediaMessage = '';
 
-  if (heat > HEAT_THRESHOLD_HOMEOWNERS || smoke > SMOKE_THRESHOLD_HOMEOWNERS) {
-    homeownersMessage = 'Warning: High levels of heat or smoke detected. Please check your surroundings.';
+  // Data fusion for homeowners: both heat and smoke must exceed thresholds
+  if (heat > HEAT_THRESHOLD_HOMEOWNERS && smoke > SMOKE_THRESHOLD_HOMEOWNERS) {
+    homeownersMessage = 'Warning: High heat and smoke levels detected. Please check your surroundings.';
     client.publish('/alerts/homeowners', homeownersMessage, { qos: 1 });
   }
 
+  // Data fusion for fire service: all three sensors (heat, smoke, and fire) must exceed thresholds
   if (heat > HEAT_THRESHOLD_FIRE_SERVICE && smoke > SMOKE_THRESHOLD_FIRE_SERVICE && fire > FIRE_THRESHOLD_FIRE_SERVICE) {
-    fireServiceMessage = 'Critical alert: High levels of heat, smoke, and fire detected. Immediate action required.';
+    fireServiceMessage = 'Critical alert: High heat, smoke, and fire levels detected. Immediate action required.';
     client.publish('/alerts/fireService', fireServiceMessage, { qos: 1 });
   }
 
-  if (heat > HEAT_THRESHOLD_NEWS || smoke > SMOKE_THRESHOLD_NEWS || fire > FIRE_THRESHOLD_NEWS) {
-    newsMessage = 'Alert: Extreme levels of heat, smoke, or fire detected. Media coverage may be required.';
+  // Data fusion for news: any two sensors must exceed thresholds
+  if ((heat > HEAT_THRESHOLD_NEWS && smoke > SMOKE_THRESHOLD_NEWS) || 
+      (heat > HEAT_THRESHOLD_NEWS && fire > FIRE_THRESHOLD_NEWS) || 
+      (smoke > SMOKE_THRESHOLD_NEWS && fire > FIRE_THRESHOLD_NEWS)) {
+    newsMessage = 'Alert: Extreme sensor readings detected. Media coverage may be required.';
     client.publish('/alerts/news', newsMessage, { qos: 1 });
   }
 
-  if (heat > HEAT_THRESHOLD_SOCIAL_MEDIA || smoke > SMOKE_THRESHOLD_SOCIAL_MEDIA || fire > FIRE_THRESHOLD_SOCIAL_MEDIA) {
-    socialMediaMessage = 'Alert: Critical sensor readings. Share this information on social media.';
+  // Data fusion for social media: any two sensors must exceed thresholds
+  if ((heat > HEAT_THRESHOLD_SOCIAL_MEDIA && smoke > SMOKE_THRESHOLD_SOCIAL_MEDIA) || 
+      (heat > HEAT_THRESHOLD_SOCIAL_MEDIA && fire > FIRE_THRESHOLD_SOCIAL_MEDIA) || 
+      (smoke > SMOKE_THRESHOLD_SOCIAL_MEDIA && fire > FIRE_THRESHOLD_SOCIAL_MEDIA)) {
+    socialMediaMessage = 'Alert: Critical sensor readings detected. Share this information on social media.';
     client.publish('/alerts/socialMedia', socialMediaMessage, { qos: 1 });
   }
 });
 
+// Handle serial port errors
 port.on('error', (err) => {
   console.error('Serial Port Error: ', err.message);
 });
